@@ -319,6 +319,7 @@ type Pdf interface {
 	AddLayer(name string, visible bool) (layerID int)
 	AddLink() int
 	AddPage()
+	MovePage(dst int, src int)
 	AddPageFormat(orientationStr string, size SizeType)
 	AddSpotColor(nameStr string, c, m, y, k byte)
 	AliasNbPages(aliasStr string)

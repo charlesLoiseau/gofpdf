@@ -844,6 +844,77 @@ func (f *Fpdf) AddPage() {
 	return
 }
 
+// Move and existing page inside the document.
+func (f *Fpdf) MovePage(dst int, src int) {
+	if f.err != nil {
+		return
+	}
+	if (dst <= 0) || (dst >= len(f.pages)) || (src <= 0) || (src >= len(f.pages)) {
+		return
+	}
+	// add the default page boxes, if any exist, to the page
+	f.pageBoxes[f.page] = make(map[string]PageBox)
+	for box, pb := range f.defPageBoxes {
+		f.pageBoxes[f.page][box] = pb
+	}
+
+	// copy the src page
+	srcPage := f.pages[src]
+	// remove the page from the list
+	copy(f.pages[src:], f.pages[src+1:])
+	// copy to the new dst
+	copy(f.pages[dst:], f.pages[dst-1:])
+	f.pages[dst] = srcPage
+
+	// copy the src link
+	srcLink := f.pageLinks[src]
+	// remove the link from the list
+	copy(f.pageLinks[src:], f.pageLinks[src+1:])
+	// copy to the new dst
+	copy(f.pageLinks[dst:], f.pageLinks[dst-1:])
+	f.pageLinks[dst] = srcLink
+
+	// copy the src page
+	srcAttachments := f.pageAttachments[src]
+	// remove the page from the list
+	copy(f.pageAttachments[src:], f.pageAttachments[src+1:])
+	// copy to the new dst
+	copy(f.pageAttachments[dst:], f.pageAttachments[dst-1:])
+	f.pageAttachments[dst] = srcAttachments
+
+	f.state = 2
+	f.x = f.lMargin
+	f.y = f.tMargin
+	f.fontFamily = ""
+	// Check page size and orientation
+	orientationStr := f.defOrientation
+	size := f.defPageSize
+	if orientationStr == "" {
+		orientationStr = f.defOrientation
+	} else {
+		orientationStr = strings.ToUpper(orientationStr[0:1])
+	}
+	if orientationStr != f.curOrientation || size.Wd != f.curPageSize.Wd || size.Ht != f.curPageSize.Ht {
+		// New size or orientation
+		if orientationStr == "P" {
+			f.w = size.Wd
+			f.h = size.Ht
+		} else {
+			f.w = size.Ht
+			f.h = size.Wd
+		}
+		f.wPt = f.w * f.k
+		f.hPt = f.h * f.k
+		f.pageBreakTrigger = f.h - f.bMargin
+		f.curOrientation = orientationStr
+		f.curPageSize = size
+	}
+	if orientationStr != f.defOrientation || size.Wd != f.defPageSize.Wd || size.Ht != f.defPageSize.Ht {
+		f.pageSizes[f.page] = SizeType{f.wPt, f.hPt}
+	}
+	return
+}
+
 // PageNo returns the current page number.
 //
 // See the example for AddPage() for a demonstration of this method.
